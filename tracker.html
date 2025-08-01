@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spacecraft AR Tracker | View ISS & Starlink in Augmented Reality</title>
+    <meta name="description" content="Track ISS and Starlink satellites in augmented reality right from your mobile browser">
+    
+    <!-- A-Frame and AR.js -->
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    
+    <style>
+        :root {
+            --primary: #0b3d91;
+            --secondary: #fc3d21;
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+            --accent: #00b4d8;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--dark);
+            color: var(--light);
+            overflow-x: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 10;
+        }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, var(--accent), var(--light));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .subtitle {
+            font-weight: 300;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .intro-section {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeIn 1s ease-out;
+        }
+        
+        .intro-section p {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(45deg, var(--secondary), var(--accent));
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 180, 216, 0.3);
+            border: none;
+            cursor: pointer;
+            margin: 0.5rem;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 180, 216, 0.4);
+        }
+        
+        .cta-button i {
+            margin-right: 8px;
+        }
+        
+        .ar-container {
+            width: 100%;
+            height: 70vh;
+            max-height: 600px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            margin: 2rem 0;
+            position: relative;
+            background: #000;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .feature-card i {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 0.8rem;
+            color: var(--accent);
+        }
+        
+        .instructions {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 3rem 0;
+            border-left: 4px solid var(--secondary);
+        }
+        
+        .instructions h2 {
+            margin-bottom: 1rem;
+            color: var(--accent);
+        }
+        
+        .instructions ol {
+            padding-left: 1.5rem;
+        }
+        
+        .instructions li {
+            margin-bottom: 0.8rem;
+            line-height: 1.6;
+        }
+        
+        footer {
+            background: linear-gradient(135deg, var(--dark), #000);
+            padding: 2rem;
+            text-align: center;
+            margin-top: 3rem;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .footer-links a {
+            color: var(--light);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-links a:hover {
+            color: var(--accent);
+        }
+        
+        .social-icons {
+            margin: 1rem 0;
+        }
+        
+        .social-icons a {
+            color: var(--light);
+            margin: 0 0.5rem;
+            font-size: 1.5rem;
+            transition: color 0.3s ease;
+        }
+        
+        .social-icons a:hover {
+            color: var(--accent);
+        }
+        
+        .copyright {
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+            
+            .ar-container {
+                height: 60vh;
+            }
+        }
+        
+        /* AR scene adjustments */
+        a-scene {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Hide AR.js UI */
+        .a-enter-vr {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <header class="animate__animated animate__fadeIn">
+        <h1>SPACECRAFT AR TRACKER</h1>
+        <p class="subtitle">View ISS and Starlink satellites in augmented reality</p>
+    </header>
+    
+    <div class="container">
+        <section class="intro-section">
+            <p>Experience the International Space Station and Starlink satellites flying overhead in real-time augmented reality. No app required - works directly in your mobile browser!</p>
+            <button id="start-ar" class="cta-button pulse animate__animated animate__pulse animate__infinite">
+                <i class="fas fa-satellite-dish"></i> Launch AR Experience
+            </button>
+            <button id="learn-more" class="cta-button" style="background: transparent; border: 1px solid var(--accent);">
+                <i class="fas fa-info-circle"></i> How It Works
+            </button>
+        </section>
+        
+        <div class="ar-container">
+            <div class="loading-overlay" id="loading-overlay">
+                <div class="loading-spinner"></div>
+                <p>Initializing AR experience...</p>
+            </div>
+            <a-scene embedded arjs='detectionMode: mono_and_matrix; matrixCodeType: 3x3;' id="ar-scene" style="display: none;">
+                <a-entity gltf-model="https://cdn.glitch.com/NASA_models.glb" 
+                          scale="0.5 0.5 0.5"
+                          gps-entity-place="latitude: 40.7128; longitude: -74.0060"
+                          animation="property: rotation; to: 0 360 0; loop: true; dur: 10000">
+                </a-entity>
+                <a-camera gps-camera rotation-reader></a-camera>
+            </a-scene>
+        </div>
+        
+        <section class="features">
+            <div class="feature-card animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+                <i class="fas fa-globe-americas"></i>
+                <h3>Real-time Tracking</h3>
+                <p>See the current position of the International Space Station and Starlink satellites based on live orbital data.</p>
+            </div>
+            
+            <div class="feature-card animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+                <i class="fas fa-mobile-alt"></i>
+                <h3>No App Required</h3>
+                <p>Works directly in your mobile browser using WebAR technology. No downloads or installations needed.</p>
+            </div>
+            
+            <div class="feature-card animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
+                <i class="fas fa-space-shuttle"></i>
+                <h3>3D Models</h3>
+                <p>High-quality 3D models of spacecraft with accurate scale and orientation in your environment.</p>
+            </div>
+        </section>
+        
+        <section class="instructions">
+            <h2>How To Use</h2>
+            <ol>
+                <li>Click the "Launch AR Experience" button above</li>
+                <li>Allow camera access when prompted</li>
+                <li>Point your camera at the sky or a flat surface</li>
+                <li>View the ISS and Starlink satellites in your environment</li>
+                <li>Move around to see the spacecraft from different angles</li>
+            </ol>
+        </section>
+    </div>
+    
+    <footer>
+        <div class="footer-links">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+            <a href="#">About Us</a>
+            <a href="#">Contact</a>
+        </div>
+        
+        <div class="social-icons">
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-facebook"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-github"></i></a>
+        </div>
+        
+        <p class="copyright">© 2023 Spacecraft AR Tracker. All rights reserved.</p>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const startArBtn = document.getElementById('start-ar');
+            const learnMoreBtn = document.getElementById('learn-more');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const arScene = document.getElementById('ar-scene');
+            
+            // Start AR experience
+            startArBtn.addEventListener('click', function() {
+                // Show loading overlay
+                loadingOverlay.style.display = 'flex';
+                
+                // Check if device is mobile
+                if (!/Mobi|Android/i.test(navigator.userAgent)) {
+                    loadingOverlay.innerHTML = `
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--secondary); margin-bottom: 1rem;"></i>
+                        <h3 style="margin-bottom: 1rem;">Mobile Device Required</h3>
+                        <p>For the best experience, please open this page on a smartphone or tablet.</p>
+                        <p>AR features require device motion sensors and camera.</p>
+                    `;
+                    return;
+                }
+                
+                // Check for WebGL support
+                if (!AFRAME.utils.device.checkWebGLSupport()) {
+                    loadingOverlay.innerHTML = `
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--secondary); margin-bottom: 1rem;"></i>
+                        <h3 style="margin-bottom: 1rem;">WebGL Not Supported</h3>
+                        <p>Your device or browser doesn't support WebGL, which is required for AR.</p>
+                        <p>Please try updating your browser or using a different device.</p>
+                    `;
+                    return;
+                }
+                
+                // Show AR scene after a brief delay (simulating loading)
+                setTimeout(() => {
+                    loadingOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                        arScene.style.display = 'block';
+                        
+                        // Add animation to spacecraft when loaded
+                        const spacecraft = document.querySelector('[gltf-model]');
+                        if (spacecraft) {
+                            spacecraft.setAttribute('animation', {
+                                property: 'rotation',
+                                to: '0 360 0',
+                                loop: true,
+                                dur: 20000
+                            });
+                        }
+                    }, 500);
+                }, 2000);
+            });
+            
+            // Learn more button
+            learnMoreBtn.addEventListener('click', function() {
+                const instructions = document.querySelector('.instructions');
+                instructions.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            // Animate feature cards on scroll
+            const featureCards = document.querySelectorAll('.feature-card');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate__fadeInUp');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            featureCards.forEach(card => {
+                observer.observe(card);
+            });
+        });
+    </script>
+</body>
+</html>
